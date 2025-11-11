@@ -1,0 +1,43 @@
+VAGRANTFILE_API_VERSION = "2"
+ENV['VAGRANT_SERVER_URL'] = 'https://vagrant.elab.pro'
+
+virt_machines=[
+  {
+    :hostname => "zabbixagent1",
+    :ip => "192.168.1.70"
+  },
+  {
+    :hostname => "zabbixagent2",
+    :ip => "192.168.1.71"
+  }
+]
+
+HOST_VM_BOX = "bento/ubuntu-24.04"
+HOST_BRIDGE = "vg-bridge"
+HOST_SHOW_GUI = false
+HOST_MEMMORY = "512"
+HOST_CPUS = 1
+HOST_USER = 'test'
+HOST_USER_PASS = '123456789'
+HOST_UPGRADE = 'false'
+
+
+
+Vagrant.configure("2") do |config|
+	virt_machines.each do |machine|
+		config.vm.box = HOST_VM_BOX
+		config.vm.define machine[:hostname] do |node|
+			node.vm.hostname = machine[:hostname]
+			node.vm.network :public_network, 
+			  :dev => HOST_BRIDGE,
+			  :mode => "bridge",    
+			  :type => "bridge",  
+			  :ip => machine[:ip]
+			node.vm.provider :libvirt do |current_vm, override|
+				current_vm.memory = HOST_MEMMORY
+				current_vm.cpus = HOST_CPUS
+				override.vm.provision "shell", path: './ubuntu+zabbix-agent/zabbix-agent.sh', args: [	'test', 	'123456789',	'false', 	machine[:hostname], 	machine[:ip],	'192.168.1.69'], run: "once"
+			end
+		end
+	end
+end
